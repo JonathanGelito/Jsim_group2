@@ -42,6 +42,35 @@
 Xinv clk1 out inverter
 
 
+.subckt my_circuit a b sum carry
+    Xsum a b sum xor2
+    Xcarry a b carry and2
+.ends my_circuit
+
+
+Xhalf_adder clk1 clk2 sum1 carry1 my_circuit
+
+.subckt fulladder1 a b cin sum cout
+    Xsum1 a b sum1 xor2
+    Xsum2 sum1 cin sum xor2
+    Xcarry1 a b carry1 and2
+    Xcarry2 sum1 cin carry2 and2
+    Xcarry3 carry1 carry2 cout or2
+.ends fulladder1
+
+Xfull_adder1 clk1 clk2 clk3 sum2 carry2 fulladder1
+
+.subckt fulladder2 a b cin sum cout
+    Xsum1 a b sum1 xor2
+    Xsum2 sum1 cin sum xor2
+    Xcarry1 a b carry1 nand2
+    Xcarry2 sum1 cin carry2 nand2
+    Xcarry3 carry1 carry2 cout nand2
+.ends fulladder2
+
+Xfull_adder2 clk1 clk2 clk3 sum3 carry3 fulladder2
+
+
 *******************************************************************************
 * The circuit above does NOT display anything in the simulator. We tell JSim
 * to display something via .tran and .plot commands. The .tran statement
@@ -53,10 +82,17 @@ Xinv clk1 out inverter
 * ".plot clk1 out" instead, but it will be hard to see any overlaps in signal.)
 *******************************************************************************
 
-.tran 10ns
+.tran 40ns
 .plot clk1
 .plot out
-
+.plot clk2
+.plot sum1
+.plot carry1
+.plot clk3
+.plot sum2
+.plot carry2
+.plot sum3
+.plot carry3
 
 *******************************************************************************
 * To actually see these plots, click the "Gate-level Simulation" button on the
