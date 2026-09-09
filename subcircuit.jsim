@@ -1,0 +1,33 @@
+
+* Custom tester
+.include "8clocks.jsim"
+.include "nominal.jsim"
+.include "stdcell.jsim"
+
+.subckt fx a b c d e f g out
+
+* Layer 1: Inverted Inputs
+Xnand_ab a b w1 nand2
+Xnand_cde c d e w2 nand3
+Xnand_fg f g w3 nand2
+
+* Layer 2: Feed the inverted outputs into a nand
+Xnand_final w1 w2 w3 out nand3
+
+.ends
+
+* Instantiate fx with clk1 through clk7 assigned to inputs a through g in order
+Xtest_fx clk1 clk2 clk3 clk4 clk5 clk6 clk7 out_fx fx
+
+* Run simulation long enough to see at least one full cycle of clk7 (which has a 1280ns period based on 8clocks.jsim)
+.tran 1800ns
+
+* Plot clock inputs
+.plot clk1
+.plot clk2
+.plot clk3
+.plot clk4
+.plot clk5
+.plot clk6
+.plot clk7
+.plot out_fx
