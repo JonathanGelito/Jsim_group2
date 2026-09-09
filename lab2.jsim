@@ -7,10 +7,10 @@
 * names, in the following format:
 *
 * LAB #2
-* Team Turbo Granny
-* - Ayase, Momo
-* - Shiratori, Aira
-* - Takakura, Ken
+* Group 2
+* - Cabalteja, Pierce
+* - Caintic, Elijah
+* - Gelito, Jonathan II
 *
 * Make sure your names are in alphabetical order, Last Name before First Name.
 * You will get deductions if you don't strictly follow this format.
@@ -26,31 +26,53 @@
 .include "nominal.jsim"
 .include "stdcell.jsim"
 
-
-*******************************************************************************
-* What follows is a (one-line) statement that describes our first "Hello
-* World!" circuit. This statement is in the form:
-*
-*   Xid a z inverter
-*
-* Xid is just the name we give to this circuit block (in this case, Xinv).
-* a is an input node ("clk1" is a 10ns-period clock defined in 8clocks.jsim).
-* z is an output node (the name "out" is just something we made up).
-* inverter is the type of subcircuit that we want (defined in stdcell.jsim).
 *******************************************************************************
 
-Xinv clk1 out inverter
+* The code is similar to the exercise in lab 2 pdf document where instead of using ANDs
+* and ORs we used NANDs and inverters to implement the circuit. The circuit is a 3-input function that uses 
+* 3 layers of NAND gates to implement the function. The first layer inverts the inputs, the second layer 
+* feeds the inverted outputs into a NAND gate, and the final layer outputs the result of the NAND gate.
+*******************************************************************************
+
+.subckt fx a b c d e f g out
+
+* Layer 1: Inverted Inputs
+Xnand_ab a b w1 nand2
+Xnand_cde c d e w2 nand3
+Xnand_fg f g w3 nand2
+
+* Layer 2: Feed the inverted outputs into a nand
+Xnand_final w1 w2 w3 out nand3
+
+.ends
+
+*******************************************************************************
+* The code uses only NANDs and NOTs to implement a full adder circuit. 
+* The circuit takes in three inputs (a, b, and cin) and produces two outputs (sum and cout).
+* The circuit uses a combination of inverters and NAND gates to produce the desired outputs. 
+* The first layer of the circuit inverts the inputs, 
+* the second layer feeds the inverted outputs into a NAND gate to produce the sum output,
+* and the final layer uses additional NAND gates to produce the carry output.
+*
+*
+* We first used ANDs and ORs and XORs to implement the circuit, 
+* then we replaced them with XORs and NANDs since the last part of the circuit 
+* is similar to the subcircuit fx.
+* We then tested out different combinations such as XORs and NANDs, NANDs and NOTs 
+* and NANDs only, with NANDs and NOTs being the most efficient in terms of propagation delay and power consumption.
+* While normally XORs should be efficient, because of how jsim and stdcell.jsim implements XORs
+* 2-XORs recieve a propagation delay of 150ps while 2-NANDs recieve a propagation delay of 30ps,
+* and NOTs receiving 20ps
+*
+* We didn't really factor in NOR gates since they are not as efficient as NANDs and NOTs,
+* and we didn't really use them in our circuit.
+* The Circuit has a crictical path of inverter to 3NANDs to 4NANDs where t_pd=20+50+70 which is 140ps
+* compared to the XOR circuit which goes to XOR to XOR has a t_pd = 150+150 which is 300ps
+***************************************************************************
 
 
-.subckt my_circuit a b sum carry
-    Xsum a b sum xor2
-    Xcarry a b carry and2
-.ends my_circuit
 
-
-Xhalf_adder clk1 clk2 sum1 carry1 my_circuit
-
-.subckt fulladder1 a b cin sum cout
+.subckt fa a b cin sum cout
 
     Xinva a inva inverter
     Xinvb b invb inverter
@@ -71,59 +93,24 @@ Xhalf_adder clk1 clk2 sum1 carry1 my_circuit
     Xcarry2 sum1 cin carry2 nand2
     Xcarry3 carry1 carry2 cout nand2
 
-.ends fulladder1
+.ends fa
 
-Xfull_adder1 clk1 clk2 clk3 sum2 carry2 fulladder1
-
-.subckt fulladder2 a b cin sum cout
-    Xsum1 a b sum1 xor2
-    Xsum2 sum1 cin sum xor2
-    Xcarry1 a b carry1 nand2
-    Xcarry2 sum1 cin carry2 nand2
-    Xcarry3 carry1 carry2 cout nand2
-.ends fulladder2
-
-Xfull_adder2 clk1 clk2 clk3 sum3 carry3 fulladder2
-
-.subckt fulladder3 a b cin sum cout
-    Xnand1 a b fanand1 nand2
-    Xnand2 fanand1 a fanand2 nand2
-    Xnand3 fanand1 b fanand3 nand2
-    Xnand4 fanand2 fanand3 fanand4 nand2
-    Xnand5 fanand4 cin fanand5 nand2
-    Xnand6 fanand5 fanand4 fanand6 nand2
-    Xnand7 fanand5 cin fanand7 nand2
-    Xnand8 fanand6 fanand7 sum nand2
-    Xnand9 fanand5 fanand1 cout nand2
-.ends fulladder3
-
-Xfull_adder3 clk1 clk2 clk3 sum4 carry4 fulladder3
+Xfull_adder1 clk1 clk2 clk3 sum carry fa
 
 
-*******************************************************************************
-* The circuit above does NOT display anything in the simulator. We tell JSim
-* to display something via .tran and .plot commands. The .tran statement
-* specifies the period of time (the "transient") that we want to plot.
-* Afterwards, we just .plot the nodes that we are interested in.
-*
-* In this example, we plot the input and the output of the Xinv circuit in two
-* separate "plot channels". (You can plot both signals in one channel by saying
-* ".plot clk1 out" instead, but it will be hard to see any overlaps in signal.)
-*******************************************************************************
+.tran 1800ns
 
-.tran 40ns
 .plot clk1
-.plot out
 .plot clk2
-.plot sum1
-.plot carry1
 .plot clk3
-.plot sum2
-.plot carry2
-.plot sum3
-.plot carry3
-.plot sum4
-.plot carry4
+.plot clk4
+.plot clk5
+.plot clk6
+.plot clk7
+.plot out_fx
+.plot sum
+.plot carry
+
 
 *******************************************************************************
 * To actually see these plots, click the "Gate-level Simulation" button on the
