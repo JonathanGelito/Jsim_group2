@@ -95,11 +95,12 @@ Xnand_final w1 w2 w3 out nand3
 
 .ends fa
 
+
+Xtest_fx clk1 clk2 clk3 clk4 clk5 clk6 clk7 out_fx fx
 Xfull_adder1 clk1 clk2 clk3 sum carry fa
 
 
 .tran 1800ns
-
 .plot clk1
 .plot clk2
 .plot clk3
