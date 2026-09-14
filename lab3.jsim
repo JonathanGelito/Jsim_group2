@@ -1,0 +1,153 @@
+*******************************************************************************
+* All lines that begin with * are comments. You may safely remove them for your
+* own submissions, but as with any programming exercise, please put in your own
+* comments to explain your code!
+*
+* In your own submissions, make sure to replace this comment block with your
+* names, in the following format:
+*
+* LAB #2
+* Group 2
+* - Cabalteja, Pierce
+* - Caintic, Elijah
+* - Gelito, Jonathan II
+*
+* Make sure your names are in alphabetical order, Last Name before First Name.
+* You will get deductions if you don't strictly follow this format.
+*******************************************************************************
+
+
+*******************************************************************************
+* The following .include lines are necessary for all your CSCI 50.02 JSim
+* exercises. These work like your Java import statement.
+*******************************************************************************
+
+.include "8clocks.jsim"
+.include "nominal.jsim"
+.include "stdcell.jsim"
+
+*******************************************************************************
+
+* The code is similar to the exercise in lab 2 pdf document where instead of using ANDs
+* and ORs we used NANDs and inverters to implement the circuit. The circuit is a 3-input function that uses 
+* 3 layers of NAND gates to implement the function. The first layer inverts the inputs, the second layer 
+* feeds the inverted outputs into a NAND gate, and the final layer outputs the result of the NAND gate.
+*******************************************************************************
+
+.subckt fx a b c d e f g out
+
+* Layer 1: Inverted Inputs
+Xnand_ab a b w1 nand2
+Xnand_cde c d e w2 nand3
+Xnand_fg f g w3 nand2
+
+* Layer 2: Feed the inverted outputs into a nand
+Xnand_final w1 w2 w3 out nand3
+
+.ends
+
+*******************************************************************************
+* The code uses only NANDs and NOTs to implement a full adder circuit. 
+* The circuit takes in three inputs (a, b, and cin) and produces two outputs (sum and cout).
+* The circuit uses a combination of inverters and NAND gates to produce the desired outputs. 
+* The first layer of the circuit inverts the inputs, 
+* the second layer feeds the inverted outputs into a NAND gate to produce the sum output,
+* and the final layer uses additional NAND gates to produce the carry output.
+*
+*
+* We first used ANDs and ORs and XORs to implement the circuit, 
+* then we replaced them with XORs and NANDs since the last part of the circuit 
+* is similar to the subcircuit fx.
+* We then tested out different combinations such as XORs and NANDs, NANDs and NOTs 
+* and NANDs only, with NANDs and NOTs being the most efficient in terms of propagation delay and power consumption.
+* While normally XORs should be efficient, because of how jsim and stdcell.jsim implements XORs
+* 2-XORs recieve a propagation delay of 150ps while 2-NANDs recieve a propagation delay of 30ps,
+* and NOTs receiving 20ps
+*
+* We didn't really factor in NOR gates since they are not as efficient as NANDs and NOTs,
+* and we didn't really use them in our circuit.
+* The Circuit has a crictical path of inverter to 3NANDs to 4NANDs where t_pd=20+50+70 which is 140ps
+* compared to the XOR circuit which goes to XOR to XOR has a t_pd = 150+150 which is 300ps
+***************************************************************************
+
+
+
+.subckt fa a b cin sum cout
+
+    Xinva a inva inverter
+    Xinvb b invb inverter
+    Xinvc cin invc inverter
+
+    Xnand1 inva invb cin nand1 nand3
+    Xnand2 inva b invc nand2 nand3
+    Xnand3 a invb invc nand3 nand3
+    Xnand4 a b cin nand4 nand3
+
+    Xsum nand1 nand2 nand3 nand4 sum nand4
+
+    Xnand5 inva b nand5 nand2
+    Xnand6 a invb nand6 nand2
+    Xnand7 nand5 nand6 sum1 nand2
+
+    Xcarry1 a b carry1 nand2
+    Xcarry2 sum1 cin carry2 nand2
+    Xcarry3 carry1 carry2 cout nand2
+
+.ends fa
+
+.subckt add32 a[31:0] b[31:0] cin sum[31:0] cout[31:30] 
+
+
+* 1st Part
+    X1fa a[31:0] b[31:0] cin cout[30:0] sum[31:0] cout[31:0] fa
+
+* 2nd Part, have the ability to do subtraction
+ 
+* 3rd Part, have the ability to add 1 at the end of the sum, which is useful for 2's complement 
+* subtraction and managing overflow.
+
+.ends add32
+
+
+Xtest_fx clk1 clk2 clk3 clk4 clk5 clk6 clk7 out_fx fx
+Xfa0 clk1 clk2 clk3 sum carry fa
+
+Xadd32 a[31:0] b[31:0] 0 sum1[31:0] cout31 cout30 add32
+
+
+
+Wa a[31:0] nrz(0, 5, 20ns, 0ns, 0.001ns, 0.001ns)
++ 0x00000001
+Wb b[31:0] nrz(0, 5, 20ns, 0ns, 0.001ns, 0.001ns)
++ 0x00000002
+
+.tran 10000ns
+.plot sd(a[31:0])
+.plot sd(b[31:0])
+.plot sd(sum1[31:0])
+.plot sd(cout1[31:30])
+
+
+
+
+
+*******************************************************************************
+* To actually see these plots, click the "Gate-level Simulation" button on the
+* toolbar (fourth button from the right, the one that looks like an AND gate).
+* This opens a separate Plot Window.
+*
+* While these .jsim files need to be opened in JSim to perform the simulations,
+* we HIGHLY recommend that you edit these files in a full-fledged text editor
+* instead of from within JSim's own editor, because the JSim editor does NOT
+* have undo/redo functions. I personally recommend Visual Studio Code:
+*
+*   https://code.visualstudio.com/
+*
+* Then, when you want to see your changes on the Plot Window, simply click the
+* "Reload Files" button (the button with the green looping arrows on a sheet of
+* paper), then re-simulate by clicking the "Gate-level Simulation" button (the
+* Plot Window has its own). It is NOT enough to click just one of the two
+* buttons -- you have to click Reload, then Simulation, in that order!
+*
+* Happy hacking! - eric
+*******************************************************************************
