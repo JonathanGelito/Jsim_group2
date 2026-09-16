@@ -97,35 +97,31 @@ Xnand_final w1 w2 w3 out nand3
 
 .subckt add32 a[31:0] b[31:0] cin sum[31:0] cout[31:30] 
 
-
-* 1st Part
-    X1fa a[31:0] b[31:0] cin cout[30:0] sum[31:0] cout[31:0] fa
-
-* 2nd Part, have the ability to do subtraction
- 
-* 3rd Part, have the ability to add 1 at the end of the sum, which is useful for 2's complement 
-* subtraction and managing overflow.
+    X3fa a[31:0] b[31:0] cout[30:0] 0 sum[31:0] cout[31:0] fa
 
 .ends add32
-
 
 Xtest_fx clk1 clk2 clk3 clk4 clk5 clk6 clk7 out_fx fx
 Xfa0 clk1 clk2 clk3 sum carry fa
 
-Xadd32 a[31:0] b[31:0] 0 sum1[31:0] cout31 cout30 add32
+Xadd32 a[31:0] b[31:0] 0 sum[31:0] cout31 cout30 add32
 
 
 
 Wa a[31:0] nrz(0, 5, 20ns, 0ns, 0.001ns, 0.001ns)
-+ 0x00000001
++ 0xFFFFFFFF
 Wb b[31:0] nrz(0, 5, 20ns, 0ns, 0.001ns, 0.001ns)
-+ 0x00000002
++ 0x00000001
 
-.tran 10000ns
+
+
+.tran 10ns
 .plot sd(a[31:0])
 .plot sd(b[31:0])
-.plot sd(sum1[31:0])
-.plot sd(cout1[31:30])
+.plot sd(sum[31:0])
+.plot sum[31:0]
+.plot sd(cout31)
+.plot sd(cout30)
 
 
 
