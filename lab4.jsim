@@ -156,4 +156,12 @@ Wincr incr[31:0] nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
 *   added until that value is carried over to the register through the next clock cycle.
 *   I believe this is so that it is to prevent data from being lost and overwritten
 *   before it is stored in the register.
+* 
+* b. What is stopping you from making a superfast clock to make a super-fast counter.
+*   A super-fast clock cannot be used because the clock period must be strictly greater
+*   than the total propagation delay of the circuit's critical path. In this design,
+*   the critical path is dictated by the 32-bit ripple-carry adder, where the carry bit 
+*   must propogate sequentially through 32 individual full adders before the final sum is valid.
+*   Additionally, the signal must pass through the multiplexer and meet the D-register's setup time. 
+*   If the clock speed exceeds this total delay, the register will capture invalid, transitioning data on its rising edge.
 *******************************************************************************
