@@ -13,7 +13,7 @@
 *******************************************************************************
 * Plug-in your full adder and 32-bit ripple-carry adder subcircuits here.
 *******************************************************************************
-.subckt fa a b c_in sum c_out
+.subckt fa a b cin sum cout
 
     Xinva a inva inverter
     Xinvb b invb inverter
@@ -36,7 +36,7 @@
 
 .ends fa
 
-.subckt add32 a[31:0] b[31:0] cin0 sum[31:0] cout[31:30]
+.subckt add32 a[31:0] b[31:0] cin sum[31:0] cout[31:30] 
 
     X3fa a[31:0] b[31:0] cout[30:0] 0 sum[31:0] cout[31:0] fa
 
@@ -46,10 +46,13 @@
 * Your new counter32 subcircuit code should go here.
 *******************************************************************************
 .subckt counter32 reset a[31:0] f[31:0] clk
-  ********
-  * Replace these comments with your code.
-  ********
-.ends
+  Xadd a[31:0] f[31:0] 0 next_f[31:0] nc[31:30] add32 
+
+  .connect 0 zero[31:0]
+  
+  Xmux reset#32 next_f[31:0] zero[31:0] mux_out[31:0] mux2
+  Xdreg mux_out[31:0] clk#32 f[31:0] dreg
+.ends counter32
 
 *******************************************************************************
 * Pitfall: DON'T use numbers AND iterators in your node names at the same time,
