@@ -127,3 +127,33 @@ Wincr incr[31:0] nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
 .plot sd(incr[31:0])
 .plot clk1
 .plot sd(reg[31:0])
+
+
+
+*******************************************************************************
+* a. Explain the behavior of the 32-bit register output lines, reg(31,0),
+* as it is increasing, decrementing and when the output displays an updated value
+* In particular, explain the significant delay between when the reset/incr[31:0] values
+* change and when the output displays an updated value.
+*  
+*   Incrementing: When incrementing (incr[31:0] > 0),
+*   the adder calculates a larger next value. However, reg[31:0] does not immediately increase. 
+*   The new value is loaded into the register only at the next active clock edge.
+*   Decrementing: When decrementing (incr[31:0] < 0),
+*   Similarly to the incrementing, the adder calculates a smaller next value. However, reg[31:0] does not immediately decrease
+*   The new value is loaded into the register only at the next active clock edge.
+*   Resetting: When resetting (reset = 1), the register is set to zero. However, reg[31:0] does not immediately reset to zero.
+*   The new value is loaded into the register only at the next active clock edge.
+*
+*   There is a significant delay between when the reset/incr[31:0] values 
+*   change and when the output displays an updated value because the register 
+*   only updates its value on the rising edge of the clock signal (clk1=1) 
+*   and prevents any changes in Dreg while it is in the rising edge of the clock signal.
+*   This means that any changes to the input signals (reset or incr) 
+*   will not be reflected in the output until the next clock cycle,
+*   resulting in a delay between input changes and output updates.
+*   Dreg holds the value of from the mux and prevents from having new data or value 
+*   added until that value is carried over to the register through the next clock cycle.
+*   I believe this is so that it is to prevent data from being lost and overwritten
+*   before it is stored in the register.
+*******************************************************************************
