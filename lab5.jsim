@@ -38,27 +38,50 @@
 
 .subckt add32 a[31:0] b[31:0] cin sum[31:0] cout[31:30] 
 
-    X3fa a[31:0] b[31:0] cout[30:0] 0 sum[31:0] cout[31:0] fa
+    X3fa a[31:0] b[31:0] cout[30:0] cin sum[31:0] cout[31:0] fa
 
 .ends add32
+
+
+.subckt checkzero a[31:0] z
+
+    Xor1 a[30:0:2] a[31:1:2] b[15:0] nor2
+    Xor2 b[14:0:2] b[15:1:2]  c[7:0] nand2
+    Xor3 c[6:0:2] c[7:1:2] d[3:0] nor2
+    Xor4 d[2:0:2] d[3:1:2] e[1:0] nand2
+    Xor5 e[0] e[1] z nor2 
+
+.ends checkzero
 
 *******************************************************************************
 * The as32 subcircuit code should go here.
 *******************************************************************************
 
-.subckt as32 reset a[31:0] b[31:0] op0 fas[31:0] n v z
+.subckt as32 a[31:0] b[31:0] op0 fas[31:0] n v z
 
   
   Xinvertbits b[31:0] nb[31:0] inverter
 
-  op0 b[31:0] b[31:0] nb[31:0] mux2
+  Xcheckop0 op0#32 b[31:0] nb[31:0] fb[31:0] mux2
 
-  Xadd a[31:0] f[31:0] op0 next_f[31:0] nc[31:30] add32 
-  
+  Xadd a[31:0] fb[31:0] op0 fas[31:0] cout[31:30] add32
+
+ .connect fas[31] n 
+  Xovf cout[31] cout[30] v xor2
+
+  Xcheckzero fas[31:0] z checkzero
 
 .ends as32
 
+.subckt cmp32 n v z op[2:1] fcmp[31:0]
 
+    Xlt  n v lt xor2
+    Xeq  op[1] z eqt and2
+    Xlts op[2] lt ltt and2
+    Xsel eqt ltt fcmp[0] or2
+
+    .connect fcmp[31:1] 0
+.ends cmp32
 
 *******************************************************************************
 * Pitfall: DON'T use numbers AND iterators in your node names at the same time,
@@ -99,42 +122,35 @@
 * We pass it a single-bit reset signal, a 32-bit increment value, a 32-bit
 * register, and a clock signal (we just used the JSim-predefined clk1).
 *******************************************************************************
-Xcounter32 reset incr[31:0] reg[31:0] clk1 counter32
-
-*******************************************************************************
-* This "reset" waveform sets up a reset signal that has a delayed start
-* and then goes to the next value every 50ns.
-* The values "1 0 0 0 1 0" indicate that the reset signal only turns on twice.
-* (But at which times?)
-*******************************************************************************
-Wreset reset nrz(0, 5, 50ns, 14.8ns, 0.001ns, 0.001ns)
-+ 1 0 0 0 1 0
-
-*******************************************************************************
-* This "incr" waveform sets up a increment value for your counter32 circuit.
-* Note that it does NOT have a delayed start. The values "0 1 3 -1" roughly
-* translate to the following "commands" in Java-like syntax:
-*   reg += 0;  //  0 means don't touch the value
-*   reg++;     //  1 means increment by 1
-*   reg += 3;  //  3 means increment by 3
-*   reg--;     // -1 means decrement by 1
-* But note that these "commands" will happen EVERY positive clock edge (and
-* only when your reset signal is off)!
-*******************************************************************************
-Wincr incr[31:0] nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
-+ 0 1 3 -1
-
-*******************************************************************************
-* Plot our reset waveform, our incr waveform, clk1, and your 32-bit register.
-* Note: sd() displays a range of nodes as a signed decimal (instead of hex)
-*******************************************************************************
-.tran 300ns
-.plot reset
-.plot sd(incr[31:0])
-.plot clk1
-.plot sd(reg[31:0])
 
 
+Wa   a[31:0]  nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0x00000001 0x00000001 0x00000005 0x00000003 0x7FFFFFFF 0x80000000 0xFFFFFFFF
+
+Wb   b[31:0]  nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0x00000001 0x00000001 0x00000003 0x00000005 0x00000001 0x00000001 0x00000001
+
+Wop0  op0      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0 1 1 1 0 1 0
+Wop1  op1      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0 1 1 1 0 1 0
+Wop2  op2      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0 1 1 1 0 1 0
+
+
+Xas32 a[31:0] b[31:0] op0 fas[31:0] n v z as32
+Xcmp32 n v z op[2:1] fcmp[31:0] cmp32
+
+
+.tran 200ns
+
+.plot a[31:0]
+.plot b[31:0]
+.plot fas[31:0]
+.plot n
+.plot v
+.plot z
+.plot fcmp[31:0]
 
 *******************************************************************************
 * a. Explain the behavior of the 32-bit register output lines, reg(31,0),
