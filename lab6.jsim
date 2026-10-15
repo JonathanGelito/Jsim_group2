@@ -1,0 +1,136 @@
+*******************************************************************************
+* LAB #5
+* Group 2
+* - Cabalteja, Pierce
+* - Caintic, Elijah Emmanuel
+* - Gelito II, Jonathan 
+*******************************************************************************
+
+.include "8clocks.jsim"
+.include "nominal.jsim"
+.include "stdcell.jsim"
+
+*******************************************************************************
+* Plug-in your full adder and 32-bit ripple-carry adder subcircuits here.
+*******************************************************************************
+.subckt fa a b cin sum cout
+
+    Xinva a inva inverter
+    Xinvb b invb inverter
+    Xinvc cin invc inverter
+
+    Xnand1 inva invb cin nand1 nand3
+    Xnand2 inva b invc nand2 nand3
+    Xnand3 a invb invc nand3 nand3
+    Xnand4 a b cin nand4 nand3
+
+    Xsum nand1 nand2 nand3 nand4 sum nand4
+
+    Xnand5 inva b nand5 nand2
+    Xnand6 a invb nand6 nand2
+    Xnand7 nand5 nand6 sum1 nand2
+
+    Xcarry1 a b carry1 nand2
+    Xcarry2 sum1 cin carry2 nand2
+    Xcarry3 carry1 carry2 cout nand2
+
+.ends fa
+
+.subckt add32 a[31:0] b[31:0] cin sum[31:0] cout[31:30] 
+
+    X3fa a[31:0] b[31:0] cout[30:0] cin sum[31:0] cout[31:0] fa
+
+.ends add32
+
+
+.subckt checkzero a[31:0] z
+
+    Xor1 a[30:0:2] a[31:1:2] b[15:0] nor2
+    Xor2 b[14:0:2] b[15:1:2]  c[7:0] nand2
+    Xor3 c[6:0:2] c[7:1:2] d[3:0] nor2
+    Xor4 d[2:0:2] d[3:1:2] e[1:0] nand2
+    Xor5 e[0] e[1] z nor2 
+
+.ends checkzero
+
+*******************************************************************************
+* The as32 subcircuit code should go here.
+*******************************************************************************
+
+.subckt as32 a[31:0] b[31:0] op0 fas[31:0] n v z
+
+  
+  Xinvertbits b[31:0] nb[31:0] inverter
+
+  Xcheckop0 op0#32 b[31:0] nb[31:0] fb[31:0] mux2
+
+  Xadd a[31:0] fb[31:0] op0 fas[31:0] cout[31:30] add32
+
+ .connect fas[31] n 
+  Xovf cout[31] cout[30] v xor2
+
+  Xcheckzero fas[31:0] z checkzero
+
+.ends as32
+
+
+*******************************************************************************
+* The cmp32 subcircuit code should go here.
+*******************************************************************************
+
+.subckt cmp32 n v z op[2:1] fcmp[31:0]
+
+    Xlt  n v lt xor2
+    Xeq  op[1] z eqt and2
+    Xlts op[2] lt ltt and2
+    Xsel eqt ltt fcmp[0] or2
+
+    .connect fcmp[31:1] 0
+.ends cmp32
+
+
+Wa   a[31:0]  nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0x00000000 0x55555555 0x00000000 0x55555555 0xFFFFFFFF 0x00000000 0x00000000 0xAAAAAAAA 0x00000000 0xAAAAAAAA 0x00000001 0xFFFFFFFF 0x80000000 0xFFFFFFFF
++ 0x00000002 0x80000000 0x00000003 0x7FFFFFFF 0x00000003
++ 0x00000002 0x80000000 0x00000003 0x7FFFFFFF 0x00000003
++ 0x00000002 0x80000000 0x00000003 0x7FFFFFFF 0x00000003
+
+
+Wb   b[31:0]  nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0x00000000 0x00000000 0x55555555 0x55555555 0xFFFFFFFF 0x00000000 0xFFFFFFFF 0x00000000 0xAAAAAAAA 0xAAAAAAAA 0xFFFFFFFF 0x00000001 0x80000000 0xFFFFFFFF
++ 0xFFFFFFFD 0x00000002 0x00000005 0xFFFFFFFE 0x00000003
++ 0xFFFFFFFD 0x00000002 0x00000005 0xFFFFFFFE 0x00000003
++ 0xFFFFFFFD 0x00000002 0x00000005 0xFFFFFFFE 0x00000003
+
+
+Wop0  op0      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0 0 0 0 0 1 1 0 0 0 0 0 0 1
++ 1 1 1 1 1 
++ 1 1 1 1 1
++ 1 1 1 1 1 
+Wop1  op1      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
++ 1 1 1 1 1
++ 0 0 0 0 0
++ 1 1 1 1 1
+Wop2  op2      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
++ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
++ 0 0 0 0 0
++ 1 1 1 1 1
++ 1 1 1 1 1
+
+
+Xas32 a[31:0] b[31:0] op0 fas[31:0] n v z as32
+Xcmp32 n v z op[2:1] fcmp[31:0] cmp32
+
+
+.tran 2000ns
+
+.plot a[31:0]
+.plot b[31:0]
+.plot sd(fas[31:0])
+.plot n
+.plot v
+.plot z
+.plot fcmp[31:0]
+
