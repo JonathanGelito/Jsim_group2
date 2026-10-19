@@ -53,40 +53,54 @@
 
 .ends checkzero
 
-.subckt shift16right a[31:0] fshift16[31:0]
+.subckt reverse a[31:0] reverse[31:0]
+
+    .connect a[0:31] reverse[31:0]
+
+.subckt shift16right a[31:0] op1 fshift16[31:0]
 
     .connect a[31:16] fshift16[15:0]
-    .connect fshift16[31:16] 0
 
-.ends shift16
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift16[31:16] finalbits
 
-.subckt shift8right a[31:0] fshift8[31:0]
+.ends shift16right
+
+.subckt shift8right a[31:0] op1 fshift8[31:0]
 
     .connect a[31:8] fshift8[23:0]
-    .connect fshift8[31:24] 0
 
-.ends shift8
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift8[31:24] finalbits
 
-.subckt shift4right a[31:0] fshift4[31:0]
+.ends shift8right
+
+.subckt shift4right a[31:0] op1 fshift4[31:0]
 
     .connect a[31:4] fshift4[27:0]
-    .connect fshift4[31:28] 0
+
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift4[31:28] finalbits
 
 .ends shift4
 
-.subckt shift2right a[31:0] fshift2[31:0]
+.subckt shift2right a[31:0] op1 fshift2[31:0]
 
     .connect a[31:2] fshift2[29:0]
-    .connect fshift2[31:30] 0
 
-.ends shift2
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift2[31:30] finalbits
 
-.subckt shift1right a[31:0] fshift1[31:0]
+.ends shift2right
+
+.subckt shift1right a[31:0] op1 fshift1[31:0]
 
     .connect a[31:1] fshift1[30:0]
-    .connect fshift1[31] 0
 
-.ends shift1
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift1[31] finalbits
+
+.ends shift1right
 
 *******************************************************************************
 * The as32 subcircuit code should go here.
@@ -145,20 +159,28 @@
 
 .subckt shift32 a[31:0] b[4:0] op[1:0] fshift[31:0]
 
-    Xshift1 a[31:0] shifted1[31:0] shift1right
-    Xmux1 b[0] a[31:0] shifted1[31:0] stage1[31:0] mux2
+    Xreverse_in a[31:0] reversed_a[31:0] reverse32
 
-    Xshift2 stage1[31:0] shifted2[31:0] shift2right
+    Xmux_in op0 a[31:0] reversed_a[31:0] shift_in[31:0] mux2
+
+    Xshift1 shift_in[31:0] shifted1[31:0] op[1] shift1right
+    Xmux1 b[0] shift_in[31:0] shifted1[31:0] stage1[31:0] mux2
+
+    Xshift2 stage1[31:0] shifted2[31:0] op[1] shift2right
     Xmux2 b[1] stage1[31:0] shifted2[31:0] stage2[31:0] mux2
 
-    Xshift4 stage2[31:0] shifted4[31:0] shift4right
+    Xshift4 stage2[31:0] shifted4[31:0] op[1] shift4right
     Xmux4 b[2] stage2[31:0] shifted4[31:0] stage3[31:0] mux2
 
-    Xshift8 stage3[31:0] shifted8[31:0] shift8right
+    Xshift8 stage3[31:0] shifted8[31:0] op[1] shift8right
     Xmux8 b[3] stage3[31:0] shifted8[31:0] stage4[31:0] mux2
 
-    Xshift16 stage4[31:0] shifted16[31:0] shift16right
+    Xshift16 stage4[31:0] shifted16[31:0] op[1] shift16right
     Xmux16 b[4] stage4[31:0] shifted16[31:0] fshift[31:0] mux2
+
+
+    Xreverse_out shift_out[31:0] reversed_out[31:0] reverse32
+    Xmux_out op0 shift_out[31:0] reversed_out[31:0] fshift[31:0] mux2
 
 .ends shift32
 
