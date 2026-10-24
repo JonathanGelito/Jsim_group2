@@ -93,6 +93,32 @@
     Xbool a[31:0] b[31:0] op0 op1 op2 op3 fbool[31:0] mux4
 
 .ends bool32
+*******************************************************************************
+* The alu32 subcircuit code should go here.
+*******************************************************************************
+
+.subckt alu32 a[31:0] b[31:0] alufn[5:0] f[31:0]
+    * 1. Adder/Substractor (Enabled when alufn[5:4] = 00
+    * Passes alufn[0] as the op0 input.
+    Xas32 a[31:0] b[31:0] alufn[0] fas[31:0] n v z as32
+
+    * 2. Boolean Circuit (Enabled when alufn[5:4] = 01
+    Xbool32 a[31:0] b[31:0] alufn[3:0] fbool[31:0] bool32
+
+    * 3. Bit Circuit (Enabled when alufn[5:4] = 10
+    * Passes only b[4:0] for the shift amount, and alufn[1:0] for the shift type.
+    * (Assumes shift32 is defined elsewhere in your file).
+    Xshift32 a[31:0] b[4:0] alufn[1:0] fshift[31:0] shift32
+
+    * 4. Comparator (Enabled when alufn[5:4] = 11)
+    * Chained directly from the n, v, and z outputs of as32.
+Xcmp32 n v z alufn[2:1] fcmp[31:0] cmp32
+
+    * 5. The "Magical Gate": 4-Way Multiplexer Array
+    * Selects the final output based on alufn[5:4].
+    Xmux alufn[4]#32 alufn[5]#32 fas[31:0] fbool[31:0] fshift[31:0] fcmp[31:0] f[31:0] mux4
+
+.ends alu32
 
 Wa   a[31:0]  nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
 + 0x00000000 0x55555555 0x00000000 0x55555555 0xFFFFFFFF 0x00000000 0x00000000 0xAAAAAAAA 0x00000000 0xAAAAAAAA 0x00000001 0xFFFFFFFF 0x80000000 0xFFFFFFFF
