@@ -53,52 +53,71 @@
 
 .ends checkzero
 
+* Pairwise connection helper
+.subckt join a b
+    .connect a b
+.ends join
+
+
+* Reverse the order of the bits
 .subckt reverse a[31:0] reverse[31:0]
 
-    .connect a[0:31] reverse[31:0]
+    Xreversewire a[0:31] reverse[31:0] join
 
-.subckt shift16right a[31:0] op1 fshift16[31:0]
+.ends reverse
 
-    .connect a[31:16] fshift16[15:0]
+
+* Shift right by 16 bits
+.subckt shift16right a[31:0] op1 fshift16_[31:0]
+
+    Xcopy a[31:16] fshift16_[15:0] join
 
     Xmuxsigned op1 0 a[31] finalbits mux2
-    .connect fshift16[31:16] finalbits
+    .connect fshift16_[31:16] finalbits
 
 .ends shift16right
 
-.subckt shift8right a[31:0] op1 fshift8[31:0]
 
-    .connect a[31:8] fshift8[23:0]
+* Shift right by 8 bits
+.subckt shift8right a[31:0] op1 fshift8_[31:0]
+
+    Xcopy a[31:8] fshift8_[23:0] join
 
     Xmuxsigned op1 0 a[31] finalbits mux2
-    .connect fshift8[31:24] finalbits
+    .connect fshift8_[31:24] finalbits
 
 .ends shift8right
 
-.subckt shift4right a[31:0] op1 fshift4[31:0]
 
-    .connect a[31:4] fshift4[27:0]
+* Shift right by 4 bits
+.subckt shift4right a[31:0] op1 fshift4_[31:0]
 
-    Xmuxsigned op1 0 a[31] finalbits mux2
-    .connect fshift4[31:28] finalbits
-
-.ends shift4
-
-.subckt shift2right a[31:0] op1 fshift2[31:0]
-
-    .connect a[31:2] fshift2[29:0]
+    Xcopy a[31:4] fshift4_[27:0] join
 
     Xmuxsigned op1 0 a[31] finalbits mux2
-    .connect fshift2[31:30] finalbits
+    .connect fshift4_[31:28] finalbits
+
+.ends shift4right
+
+
+* Shift right by 2 bits
+.subckt shift2right a[31:0] op1 fshift2_[31:0]
+
+    Xcopy a[31:2] fshift2_[29:0] join
+
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift2_[31:30] finalbits
 
 .ends shift2right
 
-.subckt shift1right a[31:0] op1 fshift1[31:0]
 
-    .connect a[31:1] fshift1[30:0]
+* Shift right by 1 bit
+.subckt shift1right a[31:0] op1 fshift1_[31:0]
+
+    Xcopy a[31:1] fshift1_[30:0] join
 
     Xmuxsigned op1 0 a[31] finalbits mux2
-    .connect fshift1[31] finalbits
+    .connect fshift1_[31] finalbits
 
 .ends shift1right
 
@@ -141,128 +160,110 @@
     .connect fcmp[31:1] 0
 .ends cmp32
 
-.subckt bool32 a[31:0] b[31:0] op[3:0] fbool[31:0]
-
-    Xbool a[31:0] b[31:0] op0 op1 op2 op3 fbool[31:0] mux4
-
-.ends bool32
-*******************************************************************************
-* The alu32 subcircuit code should go here.
-*******************************************************************************
-
-.subckt alu32 a[31:0] b[31:0] alufn[5:0] f[31:0]
-    * 1. Adder/Substractor (Enabled when alufn[5:4] = 00
-    * Passes alufn[0] as the op0 input.
-    Xas32 a[31:0] b[31:0] alufn[0] fas[31:0] n v z as32
-
-    * 2. Boolean Circuit (Enabled when alufn[5:4] = 01
-    Xbool32 a[31:0] b[31:0] alufn[3:0] fbool[31:0] bool32
-
-    * 3. Bit Circuit (Enabled when alufn[5:4] = 10
-    * Passes only b[4:0] for the shift amount, and alufn[1:0] for the shift type.
-    * (Assumes shift32 is defined elsewhere in your file).
-    Xshift32 a[31:0] b[4:0] alufn[1:0] fshift[31:0] shift32
-
-    * 4. Comparator (Enabled when alufn[5:4] = 11)
-    * Chained directly from the n, v, and z outputs of as32.
-Xcmp32 n v z alufn[2:1] fcmp[31:0] cmp32
-
-    * 5. The "Magical Gate": 4-Way Multiplexer Array
-    * Selects the final output based on alufn[5:4].
-    Xmux alufn[4]#32 alufn[5]#32 fas[31:0] fbool[31:0] fshift[31:0] fcmp[31:0] f[31:0] mux4
-
-.ends alu32
-
 *******************************************************************************
 * The bool32 subcircuit code should go here.
 *******************************************************************************
+
+
+.subckt bool32 a[31:0] b[31:0] op[3:0] fbool[31:0]
+
+    Xbool a[31:0] b[31:0] op0#32 op1#32 op2#32 op3#32 fbool[31:0] mux4
+
+.ends bool32
+
 
 *******************************************************************************
 * The shift32 subcircuit code should go here.
 
 * What is the O notation for the shift32 subcircuit?  How many levels of logic are there?
 
-* n/2 * log2(32) = 5 levels of logic, since we are shifting by 16, 8, 4, 2, and 1 bits.
-* For each connect, we use the number of times per logic
-* 16
-* 
+
 *******************************************************************************
+
 
 .subckt shift32 a[31:0] b[4:0] op[1:0] fshift[31:0]
 
-    Xreverse_in a[31:0] reversed_a[31:0] reverse32
+    * Reverse the input when selecting a left shift
+    Xreverse_in a[31:0] reversed_a[31:0] reverse
 
-    Xmux_in op0 a[31:0] reversed_a[31:0] shift_in[31:0] mux2
+    Xmux_in op[0]#32 a[31:0] reversed_a[31:0] shift_in[31:0] mux2
 
-    Xshift1 shift_in[31:0] shifted1[31:0] op[1] shift1right
-    Xmux1 b[0] shift_in[31:0] shifted1[31:0] stage1[31:0] mux2
+    * Sign extension only for arithmetic right shifts
+    Xinvertop0 op[0] nop0 inverter
+    Xarithright op[1] nop0 arithright and2
 
-    Xshift2 stage1[31:0] shifted2[31:0] op[1] shift2right
-    Xmux2 b[1] stage1[31:0] shifted2[31:0] stage2[31:0] mux2
+    * Shift by 1
+    Xshift1 shift_in[31:0] arithright shifted1_[31:0] shift1right
+    Xmux1 b[0]#32 shift_in[31:0] shifted1_[31:0] stage1_[31:0] mux2
 
-    Xshift4 stage2[31:0] shifted4[31:0] op[1] shift4right
-    Xmux4 b[2] stage2[31:0] shifted4[31:0] stage3[31:0] mux2
+    * Shift by 2
+    Xshift2 stage1_[31:0] arithright shifted2_[31:0] shift2right
+    Xmux2 b[1]#32 stage1_[31:0] shifted2_[31:0] stage2_[31:0] mux2
 
-    Xshift8 stage3[31:0] shifted8[31:0] op[1] shift8right
-    Xmux8 b[3] stage3[31:0] shifted8[31:0] stage4[31:0] mux2
+    * Shift by 4
+    Xshift4 stage2_[31:0] arithright shifted4_[31:0] shift4right
+    Xmux4 b[2]#32 stage2_[31:0] shifted4_[31:0] stage3_[31:0] mux2
 
-    Xshift16 stage4[31:0] shifted16[31:0] op[1] shift16right
-    Xmux16 b[4] stage4[31:0] shifted16[31:0] fshift[31:0] mux2
+    * Shift by 8
+    Xshift8 stage3_[31:0] arithright shifted8_[31:0] shift8right
+    Xmux8 b[3]#32 stage3_[31:0] shifted8_[31:0] stage4_[31:0] mux2
 
+    * Shift by 16
+    Xshift16 stage4_[31:0] arithright shifted16_[31:0] shift16right
+    Xmux16 b[4]#32 stage4_[31:0] shifted16_[31:0] shift_out[31:0] mux2
 
-    Xreverse_out shift_out[31:0] reversed_out[31:0] reverse32
-    Xmux_out op0 shift_out[31:0] reversed_out[31:0] fshift[31:0] mux2
+    * Reverse the output when selecting a left shift
+    Xreverse_out shift_out[31:0] reversed_out[31:0] reverse
+
+    Xmux_out op[0]#32 shift_out[31:0] reversed_out[31:0] fshift[31:0] mux2
 
 .ends shift32
 
 
+  
 *******************************************************************************
-* The ALU32 subcircuit code should go here.
+* The alu32 subcircuit code should go here.
 *******************************************************************************
 
+.subckt alu32 a[31:0] b[31:0] alufn[5:0] f[31:0]
 
-Wa   a[31:0]  nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
-+ 0x00000000 0x55555555 0x00000000 0x55555555 0xFFFFFFFF 0x00000000 0x00000000 0xAAAAAAAA 0x00000000 0xAAAAAAAA 0x00000001 0xFFFFFFFF 0x80000000 0xFFFFFFFF
-+ 0x00000002 0x80000000 0x00000003 0x7FFFFFFF 0x00000003
-+ 0x00000002 0x80000000 0x00000003 0x7FFFFFFF 0x00000003
-+ 0x00000002 0x80000000 0x00000003 0x7FFFFFFF 0x00000003
+    Xas32 a[31:0] b[31:0] alufn[0] fas[31:0] n v z as32
 
 
-Wb   b[31:0]  nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
-+ 0x00000000 0x00000000 0x55555555 0x55555555 0xFFFFFFFF 0x00000000 0xFFFFFFFF 0x00000000 0xAAAAAAAA 0xAAAAAAAA 0xFFFFFFFF 0x00000001 0x80000000 0xFFFFFFFF
-+ 0xFFFFFFFD 0x00000002 0x00000005 0xFFFFFFFE 0x00000003
-+ 0xFFFFFFFD 0x00000002 0x00000005 0xFFFFFFFE 0x00000003
-+ 0xFFFFFFFD 0x00000002 0x00000005 0xFFFFFFFE 0x00000003
+    Xbool32 a[31:0] b[31:0] alufn[3:0] fbool[31:0] bool32
 
 
-Wop0  op0      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
-+ 0 0 0 0 0 1 1 0 0 0 0 0 0 1
-+ 1 1 1 1 1 
-+ 1 1 1 1 1
-+ 1 1 1 1 1 
-Wop1  op1      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
-+ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-+ 1 1 1 1 1
-+ 0 0 0 0 0
-+ 1 1 1 1 1
-Wop2  op2      nrz(0, 5, 50ns, 0ns, 0.001ns, 0.001ns)
-+ 0 0 0 0 0 0 0 0 0 0 0 0 0 0 
-+ 0 0 0 0 0
-+ 1 1 1 1 1
-+ 1 1 1 1 1
+    Xshift32 a[31:0] b[4:0] alufn[1:0] fshift[31:0] shift32
+
+    Xcmp32 n v z alufn[2:1] fcmp[31:0] cmp32
 
 
-Xas32 a[31:0] b[31:0] op0 fas[31:0] n v z as32
-Xcmp32 n v z op[2:1] fcmp[31:0] cmp32
+    Xmux alufn[4]#32 alufn[5]#32 fas[31:0] fbool[31:0] fshift[31:0] fcmp[31:0] f[31:0] mux4
+
+.ends alu32
 
 
-.tran 2000ns
 
-.plot a[31:0]
-.plot b[31:0]
-.plot sd(fas[31:0])
-.plot n
-.plot v
-.plot z
-.plot fcmp[31:0]
+
+Wa a[31:0] nrz(0v,5.0v,20ns,0ns,.1ns,.1ns)
++ -1 0x55555555 0xAAAAAAAA 1 -2 -1 -1 0x55555555 0 -1 0x55555555 0
++ -1 0x55555555 0 -1 0x55555555 0 -1 0x55555555 0 1 -1 -1 0x55555555 0xAAAAAAAA -1
++ 0x55555555 0xAAAAAAAA -1 -1 15 0 -1 15 0 -1 15 0
+Wb b[31:0] nrz(0v,5.0v,20ns,0ns,.1ns,.1ns)
++ 1 0x55555555 0xAAAAAAAA 1 0 -1 -1 0xAAAAAAAA 0 -1 0xAAAAAAAA 0
++ -1 0xAAAAAAAA 0 -1 0xAAAAAAAA 0 -1 0xAAAAAAAA 0 31 15 0 24 24 31
++ 24 24 31 1 15 -256 1 15 -256 1 15 -256
+Wf alufn[5:0] nrz(0v,5.0v,60ns,0ns,.1ns,.1ns)
++ 0 1 24 30 22 26 21 32 33 35 51 53 55
+
+
+Xalu32 a[31:0] b[31:0] alufn[5:0] f[31:0] alu32
+
+
+.tran 200ns
+
+.plot sd(a[31:0])
+.plot sd(b[31:0])
+.plot b(alufn[5:0])
+.plot sd(f[31:0])
 
