@@ -53,13 +53,12 @@
 
 .ends checkzero
 
-* Pairwise connection helper
+
 .subckt join a b
     .connect a b
 .ends join
 
 
-* Reverse the order of the bits
 .subckt reverse a[31:0] reverse[31:0]
 
     Xreversewire a[0:31] reverse[31:0] join
@@ -67,7 +66,6 @@
 .ends reverse
 
 
-* Shift right by 16 bits
 .subckt shift16right a[31:0] op1 fshift16_[31:0]
 
     Xcopy a[31:16] fshift16_[15:0] join
@@ -78,7 +76,6 @@
 .ends shift16right
 
 
-* Shift right by 8 bits
 .subckt shift8right a[31:0] op1 fshift8_[31:0]
 
     Xcopy a[31:8] fshift8_[23:0] join
@@ -89,7 +86,6 @@
 .ends shift8right
 
 
-* Shift right by 4 bits
 .subckt shift4right a[31:0] op1 fshift4_[31:0]
 
     Xcopy a[31:4] fshift4_[27:0] join
@@ -100,7 +96,7 @@
 .ends shift4right
 
 
-* Shift right by 2 bits
+
 .subckt shift2right a[31:0] op1 fshift2_[31:0]
 
     Xcopy a[31:2] fshift2_[29:0] join
@@ -111,7 +107,7 @@
 .ends shift2right
 
 
-* Shift right by 1 bit
+
 .subckt shift1right a[31:0] op1 fshift1_[31:0]
 
     Xcopy a[31:1] fshift1_[30:0] join
@@ -167,7 +163,7 @@
 
 .subckt bool32 a[31:0] b[31:0] op[3:0] fbool[31:0]
 
-    Xbool a[31:0] b[31:0] op0#32 op1#32 op2#32 op3#32 fbool[31:0] mux4
+    Xbool a[31:0] b[31:0] op[0]#32 op[1]#32 op[2]#32 op[3]#32 fbool[31:0] mux4
 
 .ends bool32
 
@@ -183,36 +179,35 @@
 
 .subckt shift32 a[31:0] b[4:0] op[1:0] fshift[31:0]
 
-    * Reverse the input when selecting a left shift
+
     Xreverse_in a[31:0] reversed_a[31:0] reverse
 
     Xmux_in op[0]#32 a[31:0] reversed_a[31:0] shift_in[31:0] mux2
 
-    * Sign extension only for arithmetic right shifts
     Xinvertop0 op[0] nop0 inverter
     Xarithright op[1] nop0 arithright and2
 
-    * Shift by 1
+
     Xshift1 shift_in[31:0] arithright shifted1_[31:0] shift1right
     Xmux1 b[0]#32 shift_in[31:0] shifted1_[31:0] stage1_[31:0] mux2
 
-    * Shift by 2
+
     Xshift2 stage1_[31:0] arithright shifted2_[31:0] shift2right
     Xmux2 b[1]#32 stage1_[31:0] shifted2_[31:0] stage2_[31:0] mux2
 
-    * Shift by 4
+
     Xshift4 stage2_[31:0] arithright shifted4_[31:0] shift4right
     Xmux4 b[2]#32 stage2_[31:0] shifted4_[31:0] stage3_[31:0] mux2
 
-    * Shift by 8
+
     Xshift8 stage3_[31:0] arithright shifted8_[31:0] shift8right
     Xmux8 b[3]#32 stage3_[31:0] shifted8_[31:0] stage4_[31:0] mux2
 
-    * Shift by 16
+
     Xshift16 stage4_[31:0] arithright shifted16_[31:0] shift16right
     Xmux16 b[4]#32 stage4_[31:0] shifted16_[31:0] shift_out[31:0] mux2
 
-    * Reverse the output when selecting a left shift
+
     Xreverse_out shift_out[31:0] reversed_out[31:0] reverse
 
     Xmux_out op[0]#32 shift_out[31:0] reversed_out[31:0] fshift[31:0] mux2
@@ -260,7 +255,7 @@ Wf alufn[5:0] nrz(0v,5.0v,60ns,0ns,.1ns,.1ns)
 Xalu32 a[31:0] b[31:0] alufn[5:0] f[31:0] alu32
 
 
-.tran 200ns
+.tran 500ns
 
 .plot sd(a[31:0])
 .plot sd(b[31:0])
