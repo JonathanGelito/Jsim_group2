@@ -1,76 +1,249 @@
 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-| This sample .uasm program processes an array of integers and computes
-| their total sum.
-|
-| Important notes:
-| 1. As usual, replace this comment block with the specific lab number that
-|    you are submitting, along with your group name and member names in
-|    lastname-firstname alphabetical order.
-| 2. For Lab 7, you are expected to mark the data portions of your program
-|    using labels, as demonstrated below using the labels INPUT: and OUTPUT:.
-| 3. While this sample program should work fine with most user inputs, there
-|    is an edge case that will cause this program to fail catastrophically.
-|    (Can you figure it out?)
-|
-| Happy hacking! - eric
-
+| Lab 7: BSIM
+| Problem 1: Sum of odd and even numbers
+| 
+| Group 2:
+| Cabalteja, Pierce Johan
+| Caintic, Elijah Emmanuel
+| Gelito II, Jonathan
+| 
 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
 .include beta.uasm          | include the standard predefined macros
 
-        LD(r31, INPUT, r0)  | r0 = memory[r31 + INPUT] (the array length)
-                            |  note: r31 is a special register that is always
-                            |   zero; you can shorten this to LD(INPUT, r0)
-LOOP:   
-        CMPLT(r0, r31, r7)
-        BNE(r7, COMPLETE, r31)
-        SUBC(r0, 1, r0)
-        ADDC(r1, 4, r1)     | r1 = r1 + 4 (note: r1 is initially 0)
-             | r0 = r0 - 1 (decrement the array counter)
-        LD(r1, INPUT, r2)   | r2 = memory[r1 + INPUT]
-        CMPLEC(r2,0,r6)
-        BNE(r6, COMPLETE)   
-        BEQ(r6, COMPLETE) 
-           | r3 = r3 + r2 (keep a running total in r3)
-                           | otherwise, store r3 into memory[OUTPUT + r31]
-                             | (B)ranch back to LOOP if r0 is (N)ot (E)qual to 0
 
-COMPLETE: 
-        ST(r3, OUTPUT, r31)   |  note: you can shorten this to ST(r3, OUTPUT)
-        ST(r4, OUTPUT+4, r31) |  note: you can shorten this to ST(r4, OUTPUT+4)
+| r0 = the array length
+| r1 = the address of the first element
+| r2 = output of the boolean is greater than 1
+| r3 = loop index (for both the building of maxheap and  extraction)
+| r5 parent
+| r6 = left
+| r7 = right
+| r8 = largest
+| r9 = left iterator
+| r10 = right iterator
+| r11 = left child comparison
+| r12 = right child comparison
+| r13 = spare register for swapping
 
-        HALT()              | then, finish execution
+| Basically what it does it has 2 parts
+| 1. is Building the max heap 
+| 2. Extracting the heap
+| 0.3 it calculates firstly the last non-leaf node
+| 1.0 Assume that the largest is the parent which is the second to last non-leaf no
+| 1.1 It first calculates the index of the left child
+| 1.2 It then makes it so that the left child is the largest among the left  
+| 1.3 it then calculate the index of the right child
+| 1.4 it then also does this with the right, where it sifts to see which is the largest among the right
+| 1.5 it then compares the children to see which is the largest first 
+| 1.6 if left is less than right, it proceeds that right is the largest among in the heap else it checks for the largest
+| IF CHECK LARGEST:
+| 1.7 checks between the parent and the largest value among the children
+| if it proceeds then swaps, else confirms that the larger is the parent
+| 1.8 Finishes once it goes to the root, or index 1 in the array (since the array length is considered as Array 0)
+| 2.0 since the root is now the largest in the heap, we can swap it to the end of the array 
+| 2.1 reduce the index by 1 so that we don't include it in the comparisons again
+| 2.2 do 1.1-1.6 again but this time based on the loop index and not the array length
+| 2.3 Finishes once loop index is less than or equal to zero
+| 
 
-SKIP:   
-        ADD(r3, r2, r3)
-        BEQ(r31, LOOP, r31)
-         
-SKIP2:     
-        ADD(r4, r2, r4)
-        BEQ(r31, LOOP, r31)
 
+    LD(R31, ARRAY, R0)    | R0 = array length
+    ADDC(R31, ARRAY+4, R1)         | R1 = address of first element
+
+    CMPLTC(R0, 2, R2)  | n < 2 -> already sorted
+    BNE(R2, DONE, R31)
+
+    SHRC(R0, 1, R3)
+    SUBC(R3, 1, R3)
+
+BUILD_LOOP:
+    CMPLTC(R3, 0, R4)
+    BNE(R4, HEAP_EXTRACT, R31)
+    ADD(R3, R31, R5)
+
+SIFT_BUILD:
+    |
+    1.1
+    ADD(r5, r31, r8)
+
+    | Calculate left = 2*i + 1
+    ADD(r5, r5, r6)
+    ADDC(r6, 1, r6)
+
+    | Check if left child exists and sifts through the largest of the left
+    CMPLT(r6, r0, r9)
+    BEQ(r9, BUILD_NEXT, r31)
+
+    | Assume left is largest
+    ADD(r6, r31, r8)
+
+    | Calculate right = left + 1
+    ADDC(r6, 1, r7)
+
+    | Check if right child exists
+    CMPLT(r7, r0, r9)
+    BEQ(r9, CHECK_LARGEST, r31)
+
+    | Load left and right values for swapping
+    MULC(r6, 4, r13)
+    ADD(r1, r13, r13)
+    LD(r13, 0, r11)
+
+    MULC(r7, 4, r13)
+    ADD(r1, r13, r13)
+    LD(r13, 0, r12)
+
+    | If left < right, select right
+    CMPLT(r11, r12, r13)
+    BEQ(r13, CHECK_LARGEST, r31)
+    ADD(r7, r31, r8)
+
+| compares the child to the largest
+
+
+
+CHECK_LARGEST:
+    | Loads the parent for comparison
+    MULC(r5, 4, r13)
+    ADD(R1, R13, r13)
+    LD(R13, 0, r11)
+    | Loads the largest child for comparison
+    MULC(r8, 4, r13)
+    ADD(r1, r13, r13)
+    LD(R13, 0, r12)
+    | compares the parent and the child
+    CMPLT(r11, r12, r13) 
+    BEQ(r13, BUILD_NEXT, r31)
+
+    | swaps the child
+    MULC(R5, 4, r13)
+    ADD(R1, R13, r13)
+    ST(R12, 0, R13)
+
+    MULC(R8, 4, r13)
+    ADD(r1, r13, r13)
+    ST(R11, 0, r13)
+
+
+    ADD(r8, r31, r5)
+    BEQ(r31, SIFT_BUILD, r31)
+
+BUILD_NEXT:
+    SUBC(r3, 1, r3)
+    BEQ(R31, BUILD_LOOP, R31)
+
+
+HEAP_EXTRACT:
+    | supposes that the heap size is the array length
+    ADD(R0, R31, R3)
+
+
+EXTRACT_LOOP:
+    | Stops when heap size is less than 2
+    CMPLTC(R3, 2, R2)
+    BNE(R2, DONE, R31)
+
+    | is the last index
+    SUBC(R3, 1, R5)
+    | memory address of last element
+    MULC(R5, 4, R13)
+    ADD(R1, R13, R13)
+    | maximum
+    LD(R1, 0, R11)
+    | loads last element
+    LD(R13, 0, R12)
+    | stores the contents of the last element to the root index
+    ST(R12, 0, R1)
+    | stores the contents of the root to the last element
+    ST(R11, 0, R13)
+    | reduces heap size by 1
+    SUBC(R3, 1, R3)
+    ADD(R31, R31, R5)
+    BEQ(R31, SIFT_EXTRACT, R31)
+
+SIFT_EXTRACT:
+    | Calculate left = 2*i + 1
+    ADD(r5, r5, r6)
+    ADDC(r6, 1, r6)
+
+    | Check if left child exists
+    CMPLT(r6, r3, r9)
+    BEQ(r9, EXTRACT_NEXT, r31)
+
+    | Assume left is largest
+    ADD(r6, r31, r8)
+
+    | Calculate right = left + 1
+    ADDC(r6, 1, r7)
+
+    | Check if right child exists
+    CMPLT(r7, r3, r9)
+    BEQ(r9, EXTRACT_CHECK, r31)
+
+    | Load left and right values
+    MULC(r6, 4, r13)
+    ADD(r1, r13, r13)
+    LD(r13, 0, r11)
+
+    MULC(r7, 4, r13)
+    ADD(r1, r13, r13)
+    LD(r13, 0, r12)
+
+    | If left < right, select right
+    CMPLT(r11, r12, r13)
+    BEQ(r13,EXTRACT_CHECK, r31)
+    ADD(r7, r31, r8)
+
+
+EXTRACT_CHECK:
+
+    | Loads the parent for comparison
+    MULC(r5, 4, r13)
+    ADD(R1, R13, r13)
+    LD(R13, 0, r11)
+    | Loads the largest child for comparison
+    MULC(r8, 4, r13)
+    ADD(r1, r13, r13)
+    LD(R13, 0, r12)
+    | compares the parent and the child
+    CMPLT(r11, r12, r13) 
+    BEQ(r13, EXTRACT_NEXT, r31)
+
+    | swaps the child
+    MULC(R5, 4, r13)
+    ADD(R1, R13, r13)
+    ST(R12, 0, R13)
+
+    MULC(R8, 4, r13)
+    ADD(r1, r13, r13)
+    ST(R11, 0, r13)
+
+
+    ADD(r8, r31, r5)
+    BEQ(r31, SIFT_EXTRACT, r31)
+
+EXTRACT_NEXT:
+
+    BEQ(R31, EXTRACT_LOOP, R31)
+
+DONE:
+
+    | Sorting complete   
+    HALT()
 
 
 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 
-| The "." statement changes the current memory location of any succeeding
-| UASM macros, so that it is easy to locate in the BSim window.
-| - If you omit this statement, the INPUT memory block would begin directly
-|   after your program block.
-| - You may need to adjust this memory location to make more memory space for
-|   your data.
 . = 0x19C
 
-| INPUT marks the beginning of the memory block containing the hardcoded
-| user "input".
-INPUT:
-        LONG(5)             | <-- length of the array
-        LONG(4)             | <-- first element of the array
-        LONG(2)
-        LONG(0)
+ARRAY:
+        LONG(7)             | <-- length of the array
+        LONG(5)             | <-- first element of the array
+        LONG(7)
+        LONG(8)
         LONG(6)
-        LONG(-9)            | <-- last element of the array
+        LONG(4)
+        LONG(9)
+        LONG(3)            | <-- last element of the array
 
-| OUTPUT marks the memory block where the output will appear.
-| Nothing follows the label because the output will be written by the program.
-OUTPUT:
