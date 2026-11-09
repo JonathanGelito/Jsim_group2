@@ -38,25 +38,3 @@ INPUT:
         LONG(7)                 | N: number of Fibonacci terms to generate
 
 FIBO:                           | Output block where terms will be written
-
-| The "." statement changes the current memory location of any succeeding
-| UASM macros, so that it is easy to locate in the BSim window.
-| - If you omit this statement, the INPUT memory block would begin directly
-|   after your program block.
-| - You may need to adjust this memory location to make more memory space for
-|   your data.
-. = 0x19C
-
-| INPUT marks the beginning of the memory block containing the hardcoded
-| user "input".
-INPUT:
-        LONG(5)             | <-- length of the array
-        LONG(4)             | <-- first element of the array
-        LONG(2)
-        LONG(0)
-        LONG(6)
-        LONG(-9)            | <-- last element of the array
-
-| OUTPUT marks the memory block where the output will appear.
-| Nothing follows the label because the output will be written by the program.
-OUTPUT:
