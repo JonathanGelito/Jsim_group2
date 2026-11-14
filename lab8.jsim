@@ -1,7 +1,8 @@
 *******************************************************************************
-* As with the previous labs, replace this header comment with your names!
-* - Follow "Last Name, First Name" format.
-* - Sort alphabetically!
+* Group 2:
+* Cabalteja, Pierce Johan
+* Caintic, Elijah Emmanuel
+* Gelito II, Jonathan
 *******************************************************************************
 
 .include "8clocks.jsim"
@@ -222,3 +223,28 @@ Xjdisplayb wr_werf[1:0]     wr werf_               join
 .plot d(mema[8:0])
 .plot sd(memrd[31:0])
 .plot sd(memwd[31:0])
+*******************************************************************************
+* Guide Questions:
+* a. Why is there an additional Z input (on top of the instruction opcode inputs) in the Xcontrol block?
+*
+*
+*
+*
+* b. Why should invalid instructions’ control logic output be set to the constant 0b11000000000000?
+*
+* The control logic output’s first two digits (0b11…) sets the value of PCSEL to 3. 
+* PCSEL = 3 holds the program counter in place, and makes it so that the PC keeps fetching the same instruction. 
+* This stops the program from advancing to any further instructions. 
+* The rest of the control logic output’s digits (...000000000000) sets all the control logic signals, especially the 
+* WERF and Wr signals, to 0 since we are neither writing to a register file nor to the main 
+* memory, and we do not care about the other control signals as a result. 
+* Setting the rest of the control signals to 0 freezes the processor and stops them from corrupting registers or memory.
+*
+* c. Does your Lab 7 program (that you yourself provided) represent a good number of opcodes that your control logic supports? 
+* What’s the functional coverage? (i.e., which opcodes did you implement in your control logic table, 
+* and which ones are actually exercised by your Lab 7 program? Is the coverage good?) 
+*
+*
+*
+*
+*******************************************************************************
