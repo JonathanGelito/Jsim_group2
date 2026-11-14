@@ -86,8 +86,6 @@ Xregisters  vdd  0    0     ra1_[4:0]  rd1_[31:0]
 *******************************************************************************
 Xconnectnand wa0 wa1 wa2 wa3 in_connectwa4 nand4
 
-Xinvertconnect4 in_connectwa4 connectwa4 inverter
-
 Xconnect4and5 connectwa4 wa4 connectwa5 nand2
 
 Xconnectwerf_5 connectwa5 werf_ invertwawerf nand2
@@ -229,8 +227,13 @@ Xjdisplayb wr_werf[1:0]     wr werf_               join
 * Guide Questions:
 * a. Why is there an additional Z input (on top of the instruction opcode inputs) in the Xcontrol block?
 *
-*
-*
+* While most instructions have static control signals determined entirely by their 6-bit opcode,
+* conditional branch instructions (BEQ and BNE) require runtime data to decide whether to jump 
+* to a branch target (PCSEL = 01) or continue to the next sequential instruction (PCSEL = 00). 
+* The Z input indicates whether the value in register ra (rd1_[31:0]) is equal to zero (Z = 1) or not (Z = 0). 
+* Because Xcontrol is implemented as a static ROM lookup table, including Z as the 7th address bit 
+* splits the table into two 64-opcode halves: the first half (Z = 0) configures BNE to branch and BEQ to advance normally, 
+* while the second half (Z = 1) configures BEQ to branch and BNE to advance normally.
 *
 * b. Why should invalid instructions’ control logic output be set to the constant 0b11000000000000?
 *
