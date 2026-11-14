@@ -58,6 +58,8 @@ Xmemory  vdd  0    0   pc[8:2]    inst[31:0]
 +        0    clk  wr  mema[8:2]  memwd[31:0]
 + $memory width=32 nlocations=128 file="lab7.bin"
 
+* We used problem 3 of lab 7 
+
 *******************************************************************************
 * Xregisters is a register memory device to store your Beta registers r0 - r31.
 *   1st line = read port for rd1_
@@ -244,7 +246,16 @@ Xjdisplayb wr_werf[1:0]     wr werf_               join
 * What’s the functional coverage? (i.e., which opcodes did you implement in your control logic table, 
 * and which ones are actually exercised by your Lab 7 program? Is the coverage good?) 
 *
-*
+* We used problem 3 of the lab 7 program or the in-place sorting algorithm.
+* The functional coverage of this table covers all of the things exercised in the program
+* except for MULC(ra, 4, rc) which is not implemented in the submitted version but 
+* implemented in the updated version where it is replaced with
+* SHLC(ra,2,rc) which is found in the implemented control logic
+* It has a good number of opcodes that the control logic supports such as the 
+* ADD, SUB, ADDC, CMPLTC, CMPLT, SHLC, SHRC, BEQ, BNE, LD and ST,
+* Despite the coverage control logic not including LDR, MUL and DIV and contant counterparts
+* It is relatively easy fix for constants of 2
+* 
 *
 *
 *******************************************************************************
