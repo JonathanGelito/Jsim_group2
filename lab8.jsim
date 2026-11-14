@@ -81,7 +81,18 @@ Xregisters  vdd  0    0     ra1_[4:0]  rd1_[31:0]
 *       the werf signal is forced OFF; otherwise, it should pass through the
 *       werf_ signal.
 *******************************************************************************
-.connect werf werf_
+Xconnectnand wa0 wa1 wa2 wa3 in_connectwa4 nand4
+
+Xinvertconnect4 in_connectwa4 connectwa4 inverter
+
+Xconnect4and5 connectwa4 wa4 connectwa5 nand2
+
+Xconnectwerf_5 connectwa5 werf_ invertwawerf nand2
+
+Xinvertwawerf invertwawerf wawerf inverter
+
+
+.connect werf wawerf
 
 *******************************************************************************
 * Xcontrol is a read-only memory (ROM) that defines what to feed into the
