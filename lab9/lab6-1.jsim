@@ -1,0 +1,264 @@
+*******************************************************************************
+* LAB #6
+* Group 2
+* - Cabalteja, Pierce
+* - Caintic, Elijah Emmanuel
+* - Gelito II, Jonathan 
+*******************************************************************************
+
+.include "8clocks.jsim"
+.include "nominal.jsim"
+.include "stdcell.jsim"
+
+*******************************************************************************
+* Plug-in your full adder and 32-bit ripple-carry adder subcircuits here.
+*******************************************************************************
+.subckt fa a b cin sum cout
+
+    Xinva a inva inverter
+    Xinvb b invb inverter
+    Xinvc cin invc inverter
+
+    Xnand1 inva invb cin nand1 nand3
+    Xnand2 inva b invc nand2 nand3
+    Xnand3 a invb invc nand3 nand3
+    Xnand4 a b cin nand4 nand3
+
+    Xsum nand1 nand2 nand3 nand4 sum nand4
+
+    Xnand5 inva b nand5 nand2
+    Xnand6 a invb nand6 nand2
+    Xnand7 nand5 nand6 sum1 nand2
+
+    Xcarry1 a b carry1 nand2
+    Xcarry2 sum1 cin carry2 nand2
+    Xcarry3 carry1 carry2 cout nand2
+
+.ends fa
+
+.subckt add32 a[31:0] b[31:0] cin sum[31:0] cout[31:30] 
+
+    X3fa a[31:0] b[31:0] cout[30:0] cin sum[31:0] cout[31:0] fa
+
+.ends add32
+
+
+.subckt checkzero a[31:0] z
+
+    Xor1 a[30:0:2] a[31:1:2] b[15:0] nor2
+    Xor2 b[14:0:2] b[15:1:2]  c[7:0] nand2
+    Xor3 c[6:0:2] c[7:1:2] d[3:0] nor2
+    Xor4 d[2:0:2] d[3:1:2] e[1:0] nand2
+    Xor5 e[0] e[1] z nor2 
+
+.ends checkzero
+
+
+.subckt join a b
+    .connect a b
+.ends join
+
+
+.subckt reverse a[31:0] reverse[31:0]
+
+    Xreversewire a[0:31] reverse[31:0] join
+
+.ends reverse
+
+
+.subckt shift16right a[31:0] op1 fshift16_[31:0]
+
+    Xcopy a[31:16] fshift16_[15:0] join
+
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift16_[31:16] finalbits
+
+.ends shift16right
+
+
+.subckt shift8right a[31:0] op1 fshift8_[31:0]
+
+    Xcopy a[31:8] fshift8_[23:0] join
+
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift8_[31:24] finalbits
+
+.ends shift8right
+
+
+.subckt shift4right a[31:0] op1 fshift4_[31:0]
+
+    Xcopy a[31:4] fshift4_[27:0] join
+
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift4_[31:28] finalbits
+
+.ends shift4right
+
+
+
+.subckt shift2right a[31:0] op1 fshift2_[31:0]
+
+    Xcopy a[31:2] fshift2_[29:0] join
+
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift2_[31:30] finalbits
+
+.ends shift2right
+
+
+
+.subckt shift1right a[31:0] op1 fshift1_[31:0]
+
+    Xcopy a[31:1] fshift1_[30:0] join
+
+    Xmuxsigned op1 0 a[31] finalbits mux2
+    .connect fshift1_[31] finalbits
+
+.ends shift1right
+
+*******************************************************************************
+* The as32 subcircuit code should go here.
+
+* need to optimize the adder to look ahead adder, but works for now
+*******************************************************************************
+
+.subckt as32 a[31:0] b[31:0] op0 fas[31:0] n v z
+
+  
+  Xinvertbits b[31:0] nb[31:0] inverter
+
+  Xcheckop0 op0#32 b[31:0] nb[31:0] fb[31:0] mux2
+
+  Xadd a[31:0] fb[31:0] op0 fas[31:0] cout[31:30] add32
+
+ .connect fas[31] n 
+  Xovf cout[31] cout[30] v xor2
+
+  Xcheckzero fas[31:0] z checkzero
+
+.ends as32
+
+
+*******************************************************************************
+* The cmp32 subcircuit code should go here.
+
+* needs optimization, but works for now
+*******************************************************************************
+
+.subckt cmp32 n v z op[2:1] fcmp[31:0]
+
+    Xlt  n v lt xor2
+    Xeq  op[1] z eqt and2
+    Xlts op[2] lt ltt and2
+    Xsel eqt ltt fcmp[0] or2
+
+    .connect fcmp[31:1] 0
+.ends cmp32
+
+*******************************************************************************
+* The bool32 subcircuit code should go here.
+*******************************************************************************
+
+
+.subckt bool32 a[31:0] b[31:0] op[3:0] fbool[31:0]
+
+    Xbool a[31:0] b[31:0] op[0]#32 op[1]#32 op[2]#32 op[3]#32 fbool[31:0] mux4
+
+.ends bool32
+
+
+*******************************************************************************
+* The shift32 subcircuit code should go here.
+
+* What is the O notation for the shift32 subcircuit?  How many levels of logic are there?
+
+
+*******************************************************************************
+
+
+.subckt shift32 a[31:0] b[4:0] op[1:0] fshift[31:0]
+
+
+    Xreverse_in a[31:0] reversed_a[31:0] reverse
+
+    Xmux_in op[0]#32 a[31:0] reversed_a[31:0] shift_in[31:0] mux2
+
+    Xinvertop0 op[0] nop0 inverter
+    Xarithright op[1] nop0 arithright and2
+
+
+    Xshift1 shift_in[31:0] arithright shifted1_[31:0] shift1right
+    Xmux1 b[0]#32 shift_in[31:0] shifted1_[31:0] stage1_[31:0] mux2
+
+
+    Xshift2 stage1_[31:0] arithright shifted2_[31:0] shift2right
+    Xmux2 b[1]#32 stage1_[31:0] shifted2_[31:0] stage2_[31:0] mux2
+
+
+    Xshift4 stage2_[31:0] arithright shifted4_[31:0] shift4right
+    Xmux4 b[2]#32 stage2_[31:0] shifted4_[31:0] stage3_[31:0] mux2
+
+
+    Xshift8 stage3_[31:0] arithright shifted8_[31:0] shift8right
+    Xmux8 b[3]#32 stage3_[31:0] shifted8_[31:0] stage4_[31:0] mux2
+
+
+    Xshift16 stage4_[31:0] arithright shifted16_[31:0] shift16right
+    Xmux16 b[4]#32 stage4_[31:0] shifted16_[31:0] shift_out[31:0] mux2
+
+
+    Xreverse_out shift_out[31:0] reversed_out[31:0] reverse
+
+    Xmux_out op[0]#32 shift_out[31:0] reversed_out[31:0] fshift[31:0] mux2
+
+.ends shift32
+
+
+  
+*******************************************************************************
+* The alu32 subcircuit code should go here.
+*******************************************************************************
+
+.subckt alu32 a[31:0] b[31:0] alufn[5:0] f[31:0]
+
+    Xas32 a[31:0] b[31:0] alufn[0] fas[31:0] n v z as32
+
+
+    Xbool32 a[31:0] b[31:0] alufn[3:0] fbool[31:0] bool32
+
+
+    Xshift32 a[31:0] b[4:0] alufn[1:0] fshift[31:0] shift32
+
+    Xcmp32 n v z alufn[2:1] fcmp[31:0] cmp32
+
+
+    Xmux alufn[4]#32 alufn[5]#32 fas[31:0] fbool[31:0] fshift[31:0] fcmp[31:0] f[31:0] mux4
+
+.ends alu32
+
+
+
+
+Wa a[31:0] nrz(0v,5.0v,20ns,0ns,.1ns,.1ns)
++ -1 0x55555555 0xAAAAAAAA 1 -2 -1 -1 0x55555555 0 -1 0x55555555 0
++ -1 0x55555555 0 -1 0x55555555 0 -1 0x55555555 0 1 -1 -1 0x55555555 0xAAAAAAAA -1
++ 0x55555555 0xAAAAAAAA -1 -1 15 0 -1 15 0 -1 15 0
+Wb b[31:0] nrz(0v,5.0v,20ns,0ns,.1ns,.1ns)
++ 1 0x55555555 0xAAAAAAAA 1 0 -1 -1 0xAAAAAAAA 0 -1 0xAAAAAAAA 0
++ -1 0xAAAAAAAA 0 -1 0xAAAAAAAA 0 -1 0xAAAAAAAA 0 31 15 0 24 24 31
++ 24 24 31 1 15 -256 1 15 -256 1 15 -256
+Wf alufn[5:0] nrz(0v,5.0v,60ns,0ns,.1ns,.1ns)
++ 0 1 24 30 22 26 21 32 33 35 51 53 55
+
+
+Xalu32 a[31:0] b[31:0] alufn[5:0] f[31:0] alu32
+
+
+.tran 1000ns
+
+.plot sd(a[31:0])
+.plot sd(b[31:0])
+.plot b(alufn[5:0])
+.plot sd(f[31:0])
+
