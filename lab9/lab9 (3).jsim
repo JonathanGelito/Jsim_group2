@@ -339,8 +339,7 @@ Xconnectwerf_5 connectwa5 werf_ invertwawerf nand2
 
 Xinvertwawerf invertwawerf wawerf inverter
 
-
-.connect werf wawerf
+Xreset_werf reset wawerf 0 werf mux2
 
 *******************************************************************************
 * Xcontrol is a read-only memory (ROM) that defines what to feed into the
@@ -391,8 +390,9 @@ Xjcontrolb control11      ra2sel     join
 Xjcontrolc control10      bsel       join
 Xjcontrold control[9:8]   wdsel[1:0] join
 Xjcontrole control[7:2]   alufn[5:0] join
-Xjcontrolf control1       wr         join
+Xjcontrolf control1       wr_        join
 Xjcontrolg control0       werf_      join
+Xreset_wr  reset wr_ 0    wr         mux2
 
 *******************************************************************************
 * Also connect our instruction signal lines to our opcode, rc, ra, rb, and c.
@@ -409,15 +409,25 @@ Xjinste inst[15:0]  c[15:0]     join
 * Note that you will need to replace this with a real program counter circuit
 * in the final lab!
 *******************************************************************************
-Xjpc clk[8:2] pc[8:2] join
-.connect 0 pc[1:0]
+* Universal clock
+.connect clk2 clk
+
+* Reset stays 1 until 10.5ns (after clk2's first rising edge), then drops to 0
+Wreset reset nrz(0, 5, 10.5ns, 0ns, 0.001ns, 0.001ns)
++ 1 0
+
+* PC reset multiplexer and 32-bit register
+* (Coordinate the wire name "pcsel_out[31:0]" with whoever is wiring the PCSEL mux)
+.connect 0 zero[31:0]
+Xreset_pc reset#32 pcsel_out[31:0] zero[31:0] pc_in[31:0] mux2
+Xpc_reg   pc_in[31:0] clk#32 pc[31:0] dreg
 
 *******************************************************************************
 * Temporarily connect other undefined signals.
 * Note that you will need to remove these signals from this section once you
 * connect them elsewhere!
 *******************************************************************************
-.connect vdd clk ra1_[4:0] ra2_[4:0] wa[4:0] wd[31:0] mema[8:0] memwd[31:0]
+.connect vdd ra1_[4:0] ra2_[4:0] wa[4:0] wd[31:0] mema[8:0] memwd[31:0]
 .connect 0 z
 
 *******************************************************************************
@@ -454,6 +464,9 @@ Xjdisplayb wr_werf[1:0]     wr werf_               join
 *            connected to ground or vdd!)
 *******************************************************************************
 .tran 1280ns
+.plot reset
+.plot clk
+.plot werf
 .plot pc[8:0]
 .plot betaop(opcode[5:0])
 .plot d(ra[4:0])
